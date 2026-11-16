@@ -2,6 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env.dart';
+
+import 'package:flutter/material.dart';
+
 import '../storage/token_storage.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -14,6 +17,17 @@ final dioProvider = Provider<Dio>((ref) {
     ),
   );
   dio.interceptors.add(AuthInterceptor(ref));
+  dio.interceptors.add(
+    LogInterceptor(
+      request: true,
+      requestHeader: false,
+      requestBody: true,
+      responseHeader: false,
+      responseBody: true,
+      error: true,
+      logPrint: (object) => debugPrint(object.toString()),
+    ),
+  );
   return dio;
 });
 

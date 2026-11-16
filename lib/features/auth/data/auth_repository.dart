@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
@@ -17,6 +18,7 @@ class AuthRepository {
 
     Future<void> register(RegisterRequest request) async {
         try {
+            debugPrint("Button clicked RegisterRequest $request");
             await api.createUser(request);
         } on DioException catch (e) {
             throw ApiException.fromDio(e);
@@ -25,16 +27,23 @@ class AuthRepository {
 
     Future<void> login(LoginRequest request) async {
         try {
-            final session = AuthSession.fromJson(await api.loginUser(request));
-            if (session.accessToken.isEmpty)
+            debugPrint('[POST /user/login-user] payload: ${request.toJson()}');
+            final response = await api.loginUser(request);
+            debugPrint('[POST /user/login-user] response: $response');
+            final session = AuthSession.fromJson(response);
+            if (session.accessToken.isEmpty) {
                 throw const ApiException(
                     'Login response did not include an access token',
                 );
+            }
             await const TokenStorage().save(
                 session.accessToken,
                 session.refreshToken,
             );
         } on DioException catch (e) {
+            debugPrint(
+                '[POST /user/login-user] error: ${e.response?.data ?? e.message}',
+            );
             throw ApiException.fromDio(e);
         }
     }
@@ -64,5 +73,4 @@ class AuthRepository {
             throw ApiException.fromDio(e);
         }
     }
-
 }
