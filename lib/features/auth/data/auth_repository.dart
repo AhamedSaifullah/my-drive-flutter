@@ -65,20 +65,4 @@ class AuthRepository {
         }
     }
 
-    Future<bool> refresh() async {
-        final refreshToken = await const TokenStorage().refresh;
-        if (refreshToken == null || refreshToken.isEmpty) return false;
-        try {
-            final session = AuthSession.fromJson(await api.refresh(refreshToken));
-            if (session.accessToken.isEmpty) return false;
-            await const TokenStorage().save(
-                session.accessToken,
-                session.refreshToken.isEmpty ? refreshToken : session.refreshToken,
-            );
-            return true;
-        } on DioException {
-            await const TokenStorage().clear();
-            return false;
-        }
-    }
 }

@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/data/models/auth_models.dart';
 import 'features/auth/presentation/auth_controller.dart';
 
-void main() => runApp(const ProviderScope(child: MyDriveApp()));
+// void main() => runApp(const ProviderScope(child: MyDriveApp()));
+void main() {
+    debugPrint("Flutter application started!");
+    runApp(const ProviderScope(child: MyDriveApp()));
+}
 
 class MyDriveApp extends StatelessWidget {
     const MyDriveApp({super.key});
@@ -156,6 +160,7 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
     late bool login = widget.login;
+    final _formKey = GlobalKey<FormState>();
     final email = TextEditingController();
     final password = TextEditingController();
     final name = TextEditingController();
@@ -176,193 +181,276 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
 
     @override
-    Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            leading: const BackButton(),
-        ),
-        body: SafeArea(
-            child: Center(
-                child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 18, 28, 32),
-                    child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 460),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                                const _Brand(),
-                                const SizedBox(height: 42),
-                                Text(
-                                    login ? 'Welcome back' : 'Create your account',
-                                    style: Theme.of(context).textTheme.headlineLarge
-                                            ?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                    login
-                                            ? 'Sign in to pick up where you left off.'
-                                            : 'Start managing your clouds in one place.',
-                                ),
-                                const SizedBox(height: 28),
-                                if (!login) ...[
-                                    TextField(
-                                        controller: name,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Full name',
-                                            prefixIcon: Icon(Icons.person_outline),
-                                        ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                        controller: phone,
-                                        keyboardType: TextInputType.phone,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Phone',
-                                            prefixIcon: Icon(Icons.phone_outlined),
-                                        ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                        controller: dob,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Date of birth (YYYY-MM-DD)',
-                                            prefixIcon: Icon(Icons.calendar_today_outlined),
-                                        ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                        controller: gender,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Gender',
-                                            prefixIcon: Icon(Icons.wc_outlined),
-                                        ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                ],
-                                TextField(
-                                    controller: email,
-                                    keyboardType: TextInputType.emailAddress,
-                                    decoration: const InputDecoration(
-                                        labelText: 'Email address',
-                                        prefixIcon: Icon(Icons.mail_outline),
-                                    ),
-                                ),
-                                if (!login) ...[
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                        controller: confirmPassword,
-                                        obscureText: true,
-                                        decoration: const InputDecoration(
-                                            labelText: 'Confirm password',
-                                            prefixIcon: Icon(Icons.lock_reset_outlined),
-                                        ),
-                                    ),
-                                ],
-                                const SizedBox(height: 14),
-                                TextField(
-                                    controller: password,
-                                    obscureText: true,
-                                    onSubmitted: (_) => _continue(),
-                                    decoration: const InputDecoration(
-                                        labelText: 'Password',
-                                        prefixIcon: Icon(Icons.lock_outline),
-                                    ),
-                                ),
-                                if (login)
-                                    Align(
-                                        alignment: Alignment.centerRight,
-                                        child: TextButton(
-                                            onPressed: () {},
-                                            child: const Text('Forgot password?'),
-                                        ),
-                                    ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton(
-                                        onPressed: _continue,
-                                        child: Text(login ? 'Sign in' : 'Create account'),
-                                    ),
-                                ),
-                                const SizedBox(height: 24),
-                                Row(
+    Widget build(BuildContext context) {
+        final authState = ref.watch(authControllerProvider);
+        ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
+            if (previous?.isLoading != true) return;
+
+            if (next.hasError) {
+                ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(next.error.toString())));
+                return;
+            }
+
+            if (next.hasValue) {
+                if (login) {
+                    Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AppShell()),
+                        (_) => false,
+                    );
+                } else {
+                    setState(() => login = true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Account created. Please sign in.')),
+                    );
+                }
+            }
+        });
+
+        return Scaffold(
+            appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                leading: const BackButton(),
+            ),
+            body: SafeArea(
+                child: Center(
+                    child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(28, 18, 28, 32),
+                        child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 460),
+                            child: Form(
+                                key: _formKey,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                        const Expanded(child: Divider()),
-                                        Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                                            child: Text('or', style: TextStyle(color: Colors.grey)),
+                                        const _Brand(),
+                                        const SizedBox(height: 42),
+                                        Text(
+                                            login ? 'Welcome back' : 'Create your account',
+                                            style: Theme.of(context).textTheme.headlineLarge
+                                                    ?.copyWith(fontWeight: FontWeight.w800),
                                         ),
-                                        const Expanded(child: Divider()),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                            login
+                                                    ? 'Sign in to pick up where you left off.'
+                                                    : 'Start managing your clouds in one place.',
+                                        ),
+                                        const SizedBox(height: 28),
+                                        if (!login) ...[
+                                            TextFormField(
+                                                controller: name,
+                                                validator: _nameValidator,
+                                                decoration: const InputDecoration(
+                                                    labelText: 'Full name',
+                                                    prefixIcon: Icon(Icons.person_outline),
+                                                ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                                controller: phone,
+                                                keyboardType: TextInputType.phone,
+                                                validator: (value) =>
+                                                        _requiredValidator(value, 'Phone'),
+                                                decoration: const InputDecoration(
+                                                    labelText: 'Phone',
+                                                    prefixIcon: Icon(Icons.phone_outlined),
+                                                ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                                controller: dob,
+                                                readOnly: true,
+                                                onTap: _selectDob,
+                                                validator: (value) =>
+                                                        _requiredValidator(value, 'Date of birth'),
+                                                decoration: const InputDecoration(
+                                                    labelText: 'Date of birth (YYYY-MM-DD)',
+                                                    prefixIcon: Icon(Icons.calendar_today_outlined),
+                                                ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                                controller: gender,
+                                                validator: (value) =>
+                                                        _requiredValidator(value, 'Gender'),
+                                                decoration: const InputDecoration(
+                                                    labelText: 'Gender',
+                                                    prefixIcon: Icon(Icons.wc_outlined),
+                                                ),
+                                            ),
+                                            const SizedBox(height: 14),
+                                        ],
+                                        TextFormField(
+                                            controller: email,
+                                            keyboardType: TextInputType.emailAddress,
+                                            validator: _emailValidator,
+                                            decoration: const InputDecoration(
+                                                labelText: 'Email address',
+                                                prefixIcon: Icon(Icons.mail_outline),
+                                            ),
+                                        ),
+                                        if (!login) ...[
+                                            const SizedBox(height: 14),
+                                            TextFormField(
+                                                controller: confirmPassword,
+                                                obscureText: true,
+                                                validator: (value) {
+                                                    final requiredError = _requiredValidator(
+                                                        value,
+                                                        'Confirm password',
+                                                    );
+                                                    if (requiredError != null) return requiredError;
+                                                    return value != password.text
+                                                            ? 'Passwords do not match'
+                                                            : null;
+                                                },
+                                                decoration: const InputDecoration(
+                                                    labelText: 'Confirm password',
+                                                    prefixIcon: Icon(Icons.lock_reset_outlined),
+                                                ),
+                                            ),
+                                        ],
+                                        const SizedBox(height: 14),
+                                        TextFormField(
+                                            controller: password,
+                                            obscureText: true,
+                                            onFieldSubmitted: (_) => _continue(),
+                                            validator: (value) =>
+                                                    _requiredValidator(value, 'Password'),
+                                            decoration: const InputDecoration(
+                                                labelText: 'Password',
+                                                prefixIcon: Icon(Icons.lock_outline),
+                                            ),
+                                        ),
+                                        if (login)
+                                            Align(
+                                                alignment: Alignment.centerRight,
+                                                child: TextButton(
+                                                    onPressed: () {},
+                                                    child: const Text('Forgot password?'),
+                                                ),
+                                            ),
+                                        const SizedBox(height: 12),
+                                        SizedBox(
+                                            width: double.infinity,
+                                            child: FilledButton(
+                                                onPressed: () {
+                                                    if (!authState.isLoading) {
+                                                        _continue();
+                                                    }
+                                                },
+                                                child: Text(login ? 'Sign in' : 'Create account'),
+                                            ),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Row(
+                                            children: [
+                                                const Expanded(child: Divider()),
+                                                Padding(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                                    child: Text(
+                                                        'or',
+                                                        style: TextStyle(color: Colors.grey),
+                                                    ),
+                                                ),
+                                                const Expanded(child: Divider()),
+                                            ],
+                                        ),
+                                        const SizedBox(height: 20),
+                                        SizedBox(
+                                            width: double.infinity,
+                                            child: OutlinedButton.icon(
+                                                onPressed: authState.isLoading ? null : _continue,
+                                                icon: const Icon(Icons.g_mobiledata, size: 27),
+                                                label: const Text('Continue with Google'),
+                                            ),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Center(
+                                            child: TextButton(
+                                                onPressed: () => setState(() => login = !login),
+                                                child: Text(
+                                                    login
+                                                            ? 'New to My Drive? Create an account'
+                                                            : 'Already have an account? Sign in',
+                                                ),
+                                            ),
+                                        ),
                                     ],
                                 ),
-                                const SizedBox(height: 20),
-                                SizedBox(
-                                    width: double.infinity,
-                                    child: OutlinedButton.icon(
-                                        onPressed: _continue,
-                                        icon: const Icon(Icons.g_mobiledata, size: 27),
-                                        label: const Text('Continue with Google'),
-                                    ),
-                                ),
-                                const SizedBox(height: 24),
-                                Center(
-                                    child: TextButton(
-                                        onPressed: () => setState(() => login = !login),
-                                        child: Text(
-                                            login
-                                                    ? 'New to My Drive? Create an account'
-                                                    : 'Already have an account? Sign in',
-                                        ),
-                                    ),
-                                ),
-                            ],
+                            ),
                         ),
                     ),
                 ),
             ),
-        ),
-    );
+        );
+    }
+
     Future<void> _continue() async {
+        if (!_formKey.currentState!.validate()) return;
+
         if (login) {
             await ref
                     .read(authControllerProvider.notifier)
                     .login(email.text.trim(), password.text);
-        } else {
-            final parts = name.text.trim().split(RegExp(r'\s+'));
-            await ref
-                    .read(authControllerProvider.notifier)
-                    .register(
-                        RegisterRequest(
-                            firstName: parts.isEmpty ? '' : parts.first,
-                            lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
-                            password: password.text,
-                            dob: dob.text.trim(),
-                            gender: gender.text.trim(),
-                            email: email.text.trim(),
-                            phone: phone.text.trim(),
-                            confirmPassword: confirmPassword.text,
-                        ),
-                    );
-        }
-        if (!mounted) return;
-        final state = ref.read(authControllerProvider);
-        if (state.hasError) {
-            ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text(state.error.toString())));
             return;
         }
-        if (login) {
-            Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const AppShell()),
-                (_) => false,
-            );
-        } else {
-            setState(() => login = true);
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Account created. Please sign in.')),
-            );
-        }
+        final parts = name.text.trim().split(RegExp(r'\s+'));
+        await ref
+                .read(authControllerProvider.notifier)
+                .register(
+                    RegisterRequest(
+                        firstName: parts.isEmpty ? '' : parts.first,
+                        lastName: parts.length > 1 ? parts.sublist(1).join(' ') : '',
+                        password: password.text,
+                        dob: dob.text.trim(),
+                        gender: gender.text.trim(),
+                        email: email.text.trim(),
+                        phone: phone.text.trim(),
+                        confirmPassword: confirmPassword.text,
+                    ),
+                );
+    }
+
+    Future<void> _selectDob() async {
+        final today = DateTime.now();
+        final selected = await showDatePicker(
+            context: context,
+            initialDate: DateTime(today.year - 18, today.month, today.day),
+            firstDate: DateTime(1900),
+            lastDate: today,
+            helpText: 'Select your date of birth',
+        );
+        if (selected == null) return;
+
+        final formatted =
+                '${selected.year.toString().padLeft(4, '0')}-'
+                '${selected.month.toString().padLeft(2, '0')}-'
+                '${selected.day.toString().padLeft(2, '0')}';
+        setState(() => dob.text = formatted);
+    }
+
+    String? _requiredValidator(String? value, [String field = 'This field']) {
+        return value == null || value.trim().isEmpty ? '$field is required' : null;
+    }
+
+    String? _nameValidator(String? value) {
+        final requiredError = _requiredValidator(value, 'Full name');
+        if (requiredError != null) return requiredError;
+        return value!.trim().split(RegExp(r'\s+')).length > 1
+                ? null
+                : 'Enter your first and last name';
+    }
+
+    String? _emailValidator(String? value) {
+        final requiredError = _requiredValidator(value, 'Email');
+        if (requiredError != null) return requiredError;
+        return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value!.trim())
+                ? null
+                : 'Enter a valid email address';
     }
 }
 
