@@ -5,6 +5,7 @@ import 'models/auth_models.dart';
 abstract final class AuthPaths {
   static const createUser = '/user/create-user';
   static const loginUser = '/user/login-user';
+  static const refresh = '/auth/refresh';
   static const details = '/user/details';
   static const logout = '/user/logout';
   static const updateUser = '/user/update-user';
@@ -27,6 +28,9 @@ class AuthApi {
   Future<dynamic> updateUser(Map<String, dynamic> changes) async =>
       (await _dio.patch(AuthPaths.updateUser, data: changes)).data;
 
-  //   Future<dynamic> refresh(String token) async =>
-  //       (await _dio.post(AuthPaths.refresh, data: {'refreshToken': token})).data;
+  Future<dynamic> refresh(String token) async => (await _dio.post(
+    AuthPaths.refresh,
+    data: {'refreshToken': token},
+    options: Options(extra: {'skipAuthRefresh': true}),
+  )).data;
 }

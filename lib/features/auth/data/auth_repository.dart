@@ -48,6 +48,35 @@ class AuthRepository {
         }
     }
 
+    Future<bool> refresh() async {
+        final storage = const TokenStorage();
+        final refreshToken = await storage.refresh;
+        if (refreshToken == null || refreshToken.isEmpty) {
+            await storage.clear();
+            return false;
+        }
+
+        try {
+            final response = await api.refresh(refreshToken);
+            final session = AuthSession.fromJson(response);
+            if (session.accessToken.isEmpty) {
+                await storage.clear();
+                return false;
+            }
+            await storage.save(
+                session.accessToken,
+                session.refreshToken.isEmpty ? refreshToken : session.refreshToken,
+            );
+            return true;
+        } on DioException catch (e) {
+            debugPrint(
+                '[POST /user/refresh] error: ${e.response?.data ?? e.message}',
+            );
+            await storage.clear();
+            return false;
+        }
+    }
+
     Future<dynamic> getDetails() async {
         try {
             return await api.details();

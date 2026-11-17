@@ -8,8 +8,7 @@ import '../storage/token_storage.dart';
 final appRouter = GoRouter(
     initialLocation: '/login',
     redirect: (context, state) async {
-        final token = await const TokenStorage().access;
-        final isAuthenticated = token != null && token.isNotEmpty;
+        final isAuthenticated = await const TokenStorage().hasValidAccessToken();
         final isLoginRoute = state.matchedLocation == '/login';
 
         if (!isAuthenticated) return isLoginRoute ? null : '/login';
