@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../core/storage/token_storage.dart';
 import 'auth_api.dart';
 import 'models/auth_models.dart';
@@ -18,7 +18,7 @@ class AuthRepository {
 
     Future<void> register(RegisterRequest request) async {
         try {
-            debugPrint("Button clicked RegisterRequest $request");
+            AppLogger.log('Button clicked RegisterRequest $request', tag: 'Auth');
             await api.createUser(request);
         } on DioException catch (e) {
             throw ApiException.fromDio(e);
@@ -27,9 +27,12 @@ class AuthRepository {
 
     Future<void> login(LoginRequest request) async {
         try {
-            debugPrint('[POST /user/login-user] payload: ${request.toJson()}');
+            AppLogger.log(
+                '[POST /user/login-user] payload: ${request.toJson()}',
+                tag: 'Auth',
+            );
             final response = await api.loginUser(request);
-            debugPrint('[POST /user/login-user] response: $response');
+            AppLogger.log('[POST /user/login-user] response: $response', tag: 'Auth');
             final session = AuthSession.fromJson(response);
             if (session.accessToken.isEmpty) {
                 throw const ApiException(
@@ -41,8 +44,9 @@ class AuthRepository {
                 session.refreshToken,
             );
         } on DioException catch (e) {
-            debugPrint(
+            AppLogger.log(
                 '[POST /user/login-user] error: ${e.response?.data ?? e.message}',
+                tag: 'Auth',
             );
             throw ApiException.fromDio(e);
         }
@@ -69,8 +73,9 @@ class AuthRepository {
             );
             return true;
         } on DioException catch (e) {
-            debugPrint(
+            AppLogger.log(
                 '[POST /user/refresh] error: ${e.response?.data ?? e.message}',
+                tag: 'Auth',
             );
             await storage.clear();
             return false;

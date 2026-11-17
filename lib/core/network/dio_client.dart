@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/env.dart';
 
-import 'package:flutter/material.dart';
-
 import '../../features/auth/data/auth_repository.dart';
+import '../logging/app_logger.dart';
 import '../storage/token_storage.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -26,7 +25,7 @@ final dioProvider = Provider<Dio>((ref) {
             responseHeader: false,
             responseBody: true,
             error: true,
-            logPrint: (object) => debugPrint(object.toString()),
+            logPrint: (object) => AppLogger.log(object, tag: 'Dio'),
         ),
     );
     return dio;

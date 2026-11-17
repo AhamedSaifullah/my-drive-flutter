@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
+import 'core/logging/app_logger.dart';
 import 'core/navigation/app_router.dart';
 
 class MyDriveApp extends StatefulWidget {
@@ -27,7 +28,7 @@ class _MyDriveAppState extends State<MyDriveApp> {
         _deepLinkSubscription = _appLinks.uriLinkStream.listen(
             _handleDeepLink,
             onError: (Object error) {
-                debugPrint('Deep-link error: $error');
+                AppLogger.log('Deep-link error: $error', tag: 'DeepLink');
             },
         );
 
@@ -35,7 +36,7 @@ class _MyDriveAppState extends State<MyDriveApp> {
             final initialUri = await _appLinks.getInitialLink();
             if (initialUri != null) _handleDeepLink(initialUri);
         } catch (error) {
-            debugPrint('Initial deep-link error: $error');
+            AppLogger.log('Initial deep-link error: $error', tag: 'DeepLink');
         }
     }
 
@@ -45,7 +46,7 @@ class _MyDriveAppState extends State<MyDriveApp> {
         final provider = uri.queryParameters['provider'];
         if (provider == null || provider.isEmpty) return;
 
-        debugPrint('Cloud provider linked: $provider');
+        AppLogger.log('Cloud provider linked: $provider', tag: 'DeepLink');
         appRouter.go('/home');
     }
 
