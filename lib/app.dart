@@ -1,9 +1,59 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
 import 'core/navigation/app_router.dart';
 
-class MyDriveApp extends StatelessWidget {
+class MyDriveApp extends StatefulWidget {
     const MyDriveApp({super.key});
+
+    @override
+    State<MyDriveApp> createState() => _MyDriveAppState();
+}
+
+class _MyDriveAppState extends State<MyDriveApp> {
+    late final AppLinks _appLinks;
+    StreamSubscription<Uri>? _deepLinkSubscription;
+
+    @override
+    void initState() {
+        super.initState();
+        _appLinks = AppLinks();
+        _listenForDeepLinks();
+    }
+
+    Future<void> _listenForDeepLinks() async {
+        _deepLinkSubscription = _appLinks.uriLinkStream.listen(
+            _handleDeepLink,
+            onError: (Object error) {
+                debugPrint('Deep-link error: $error');
+            },
+        );
+
+        try {
+            final initialUri = await _appLinks.getInitialLink();
+            if (initialUri != null) _handleDeepLink(initialUri);
+        } catch (error) {
+            debugPrint('Initial deep-link error: $error');
+        }
+    }
+
+    void _handleDeepLink(Uri uri) {
+        if (uri.scheme != 'mydrive' || uri.host != 'linked') return;
+
+        final provider = uri.queryParameters['provider'];
+        if (provider == null || provider.isEmpty) return;
+
+        debugPrint('Cloud provider linked: $provider');
+        appRouter.go('/home');
+    }
+
+    @override
+    void dispose() {
+        _deepLinkSubscription?.cancel();
+        super.dispose();
+    }
 
     @override
     Widget build(BuildContext context) => MaterialApp.router(
