@@ -36,7 +36,11 @@ final appRouter = GoRouter(
             path: '/register',
             builder: (context, state) => const AuthScreen(login: false),
         ),
-        GoRoute(path: '/home', builder: (context, state) => const AppShell()),
+        GoRoute(
+            path: '/home',
+            builder: (context, state) =>
+                    AppShell(cloudError: state.uri.queryParameters['cloudError']),
+        ),
     ],
     errorBuilder: (context, state) =>
             Scaffold(body: Center(child: Text(state.error.toString()))),

@@ -2,18 +2,20 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/logging/app_logger.dart';
 import 'core/navigation/app_router.dart';
+import 'features/cloud/data/cloud_repository.dart';
 
-class MyDriveApp extends StatefulWidget {
+class MyDriveApp extends ConsumerStatefulWidget {
     const MyDriveApp({super.key});
 
     @override
-    State<MyDriveApp> createState() => _MyDriveAppState();
+    ConsumerState<MyDriveApp> createState() => _MyDriveAppState();
 }
 
-class _MyDriveAppState extends State<MyDriveApp> {
+class _MyDriveAppState extends ConsumerState<MyDriveApp> {
     late final AppLinks _appLinks;
     StreamSubscription<Uri>? _deepLinkSubscription;
 
@@ -44,9 +46,16 @@ class _MyDriveAppState extends State<MyDriveApp> {
         if (uri.scheme != 'mydrive' || uri.host != 'linked') return;
 
         final provider = uri.queryParameters['provider'];
+        final error = uri.queryParameters['error'];
+        if (error != null && error.isNotEmpty) {
+            AppLogger.log('Cloud link failed: $error', tag: 'DeepLink');
+            appRouter.go('/home?cloudError=${Uri.encodeQueryComponent(error)}');
+            return;
+        }
         if (provider == null || provider.isEmpty) return;
 
         AppLogger.log('Cloud provider linked: $provider', tag: 'DeepLink');
+        ref.invalidate(cloudAccountsProvider);
         appRouter.go('/home');
     }
 
