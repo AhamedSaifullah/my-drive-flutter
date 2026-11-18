@@ -123,6 +123,7 @@ class _AccountsList extends StatelessWidget {
                                 account: account,
                                 isBusy: isBusy,
                                 onUnlink: () => onUnlink(account),
+                                onReconnect: onLinkGoogle,
                             ),
                         ),
                     ),
@@ -141,11 +142,13 @@ class _CloudAccountCard extends StatelessWidget {
         required this.account,
         required this.isBusy,
         required this.onUnlink,
+        required this.onReconnect,
     });
 
     final CloudAccount account;
     final bool isBusy;
     final VoidCallback onUnlink;
+    final VoidCallback onReconnect;
 
     @override
     Widget build(BuildContext context) {
@@ -201,7 +204,12 @@ class _CloudAccountCard extends StatelessWidget {
                             ],
                         ),
                     ),
-                    if (account.status != 'unlinked')
+                    if (account.status == 'needs_reauth')
+                        TextButton(
+                            onPressed: isBusy ? null : onReconnect,
+                            child: const Text('Reconnect'),
+                        )
+                    else if (account.status != 'unlinked')
                         TextButton(
                             onPressed: isBusy ? null : onUnlink,
                             child: const Text('Unlink'),
