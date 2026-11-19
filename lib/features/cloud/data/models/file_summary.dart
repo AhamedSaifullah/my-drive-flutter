@@ -6,6 +6,8 @@ class FileCategorySummary {
     final int count;
     final int totalSize;
 
+    Map<String, dynamic> toJson() => {'count': count, 'totalSize': totalSize};
+
     factory FileCategorySummary.fromJson(dynamic value) {
         final json = value is Map<String, dynamic>
                 ? value
@@ -32,6 +34,12 @@ class FileSummary {
     final int totalFiles;
     final int totalSize;
     final Map<String, FileCategorySummary> categories;
+
+    Map<String, dynamic> toJson() => {
+        'totalFiles': totalFiles,
+        'totalSize': totalSize,
+        'categories': categories.map((key, value) => MapEntry(key, value.toJson())),
+    };
 
     factory FileSummary.fromJson(dynamic value) {
         final json = value is Map<String, dynamic>

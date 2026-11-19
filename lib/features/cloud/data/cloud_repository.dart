@@ -6,19 +6,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import 'cloud_api.dart';
+import 'file_metadata_cache.dart';
 import 'models/cloud_models.dart';
 import 'models/file_models.dart';
 import 'models/file_summary.dart';
 import 'models/sync_models.dart';
 
 final cloudRepositoryProvider = Provider<CloudRepository>(
-    (ref) => CloudRepository(CloudApi(ref.read(dioProvider))),
+    (ref) => CloudRepository(
+        CloudApi(ref.read(dioProvider)),
+        ref.read(fileMetadataCacheProvider),
+    ),
+);
+
+final fileMetadataCacheProvider = Provider<FileMetadataCache>(
+    (ref) => const FileMetadataCache(),
 );
 
 class CloudRepository {
-    const CloudRepository(this.api);
+    const CloudRepository(this.api, this.cache);
 
     final CloudApi api;
+    final FileMetadataCache cache;
 
     Future<List<CloudAccount>> listAccounts() async {
         try {
@@ -76,8 +85,12 @@ class CloudRepository {
             final data = map['data'] is Map<String, dynamic>
                     ? map['data'] as Map<String, dynamic>
                     : map;
-            return FileSummary.fromJson(data);
+            final summary = FileSummary.fromJson(data);
+            await cache.saveSummary(accountId ?? 'all', summary);
+            return summary;
         } on DioException catch (error) {
+            final cached = await cache.readSummary(accountId ?? 'all');
+            if (cached != null) return cached;
             throw ApiException.fromDio(error);
         }
     }
@@ -99,8 +112,31 @@ class CloudRepository {
                 sort: sort,
                 order: order,
             );
-            return CloudFilePage.fromJson(response);
+            final result = CloudFilePage.fromJson(response);
+            await cache.savePage(
+                _pageCacheKey(
+                    category: category,
+                    accountId: accountId,
+                    page: page,
+                    limit: limit,
+                    sort: sort,
+                    order: order,
+                ),
+                result,
+            );
+            return result;
         } on DioException catch (error) {
+            final cached = await cache.readPage(
+                _pageCacheKey(
+                    category: category,
+                    accountId: accountId,
+                    page: page,
+                    limit: limit,
+                    sort: sort,
+                    order: order,
+                ),
+            );
+            if (cached != null) return cached;
             throw ApiException.fromDio(error);
         }
     }
@@ -118,8 +154,27 @@ class CloudRepository {
                 page: page,
                 limit: limit,
             );
-            return CloudFilePage.fromJson(response);
+            final result = CloudFilePage.fromJson(response);
+            await cache.savePage(
+                _searchCacheKey(
+                    query: query,
+                    accountId: accountId,
+                    page: page,
+                    limit: limit,
+                ),
+                result,
+            );
+            return result;
         } on DioException catch (error) {
+            final cached = await cache.readPage(
+                _searchCacheKey(
+                    query: query,
+                    accountId: accountId,
+                    page: page,
+                    limit: limit,
+                ),
+            );
+            if (cached != null) return cached;
             throw ApiException.fromDio(error);
         }
     }
@@ -140,6 +195,24 @@ class CloudRepository {
         }
     }
 }
+
+String _pageCacheKey({
+    String? category,
+    String? accountId,
+    required int page,
+    required int limit,
+    required String sort,
+    required String order,
+}) =>
+        'category=${category ?? 'all'}|account=${accountId ?? 'all'}|page=$page|limit=$limit|sort=$sort|order=$order';
+
+String _searchCacheKey({
+    required String query,
+    String? accountId,
+    required int page,
+    required int limit,
+}) =>
+        'search=${query.trim().toLowerCase()}|account=${accountId ?? 'all'}|page=$page|limit=$limit';
 
 final cloudAccountsProvider = FutureProvider<List<CloudAccount>>((ref) async {
     return ref.read(cloudRepositoryProvider).listAccounts();

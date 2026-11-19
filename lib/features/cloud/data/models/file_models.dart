@@ -17,6 +17,16 @@ class CloudFile {
     final DateTime? modifiedAt;
     final String? thumbnailUrl;
 
+    Map<String, dynamic> toJson() => {
+        '_id': id,
+        'name': name,
+        'mimeType': mimeType,
+        'category': category,
+        'size': size,
+        'modifiedAt': modifiedAt?.toIso8601String(),
+        'thumbnailUrl': thumbnailUrl,
+    };
+
     factory CloudFile.fromJson(Map<String, dynamic> json) => CloudFile(
         id: '${json['_id'] ?? json['id'] ?? ''}',
         name: '${json['name'] ?? 'Unnamed file'}',
@@ -40,6 +50,11 @@ class CloudFilePage {
     final int page;
     final int total;
     final bool hasNextPage;
+
+    Map<String, dynamic> toJson() => {
+        'items': items.map((file) => file.toJson()).toList(),
+        'pagination': {'page': page, 'total': total, 'hasNextPage': hasNextPage},
+    };
 
     factory CloudFilePage.fromJson(dynamic value) {
         final json = value is Map<String, dynamic>
