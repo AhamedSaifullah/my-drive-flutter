@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links_linux
   desktop_webview_window
   flutter_secure_storage_linux
+  sqlite3_flutter_libs
   url_launcher_linux
   window_to_front
 )

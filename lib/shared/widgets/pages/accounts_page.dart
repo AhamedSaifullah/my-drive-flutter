@@ -31,6 +31,11 @@ class AccountsPage extends ConsumerWidget {
         return AppPage(
             title: 'Your cloud accounts',
             subtitle: 'Connect accounts to see all your files together.',
+            onRefresh: accountsState.maybeWhen(
+                data: (accounts) =>
+                        () => _refreshAccounts(ref, accounts),
+                orElse: () => null,
+            ),
             child: accountsState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stackTrace) => _AccountsError(
@@ -46,11 +51,6 @@ class AccountsPage extends ConsumerWidget {
                     onSync: (account) =>
                             ref.read(cloudControllerProvider.notifier).requestSync(account),
                 ),
-            ),
-            onRefresh: accountsState.maybeWhen(
-                data: (accounts) =>
-                        () => _refreshAccounts(ref, accounts),
-                orElse: () => null,
             ),
         );
     }

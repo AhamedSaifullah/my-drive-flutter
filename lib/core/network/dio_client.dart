@@ -50,11 +50,11 @@ class AuthInterceptor extends Interceptor {
     }
 
     @override
-    void onError(DioException error, ErrorInterceptorHandler handler) async {
+    void onError(DioException err, ErrorInterceptorHandler handler) async {
         final shouldRefresh =
-                error.response?.statusCode == 401 &&
-                error.requestOptions.extra['skipAuthRefresh'] != true &&
-                error.requestOptions.extra['retriedAfterRefresh'] != true;
+                err.response?.statusCode == 401 &&
+                err.requestOptions.extra['skipAuthRefresh'] != true &&
+                err.requestOptions.extra['retriedAfterRefresh'] != true;
 
         if (shouldRefresh) {
             _refreshRequest ??= ref
@@ -65,16 +65,16 @@ class AuthInterceptor extends Interceptor {
 
             if (refreshed) {
                 final token = await ref.read(tokenStorageProvider).access;
-                final retryOptions = error.requestOptions
+                final retryOptions = err.requestOptions
                     ..headers['Authorization'] = 'Bearer $token'
                     ..extra['retriedAfterRefresh'] = true;
                 return handler.resolve(await ref.read(dioProvider).fetch(retryOptions));
             }
         }
 
-        if (error.response?.statusCode == 401) {
+        if (err.response?.statusCode == 401) {
             await ref.read(tokenStorageProvider).clear();
         }
-        handler.next(error);
+        handler.next(err);
     }
 }

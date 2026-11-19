@@ -161,7 +161,7 @@ class _AccountFilter extends ConsumerWidget {
                 ],
             ),
             data: (items) => DropdownButtonFormField<String?>(
-                value: accountId,
+                initialValue: accountId,
                 decoration: const InputDecoration(
                     labelText: 'Filter by cloud account',
                     prefixIcon: Icon(Icons.cloud_outlined),

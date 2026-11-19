@@ -8,10 +8,10 @@ abstract final class CloudPaths {
     static const files = '/files';
     static const fileSearch = '/files/search';
 
-    static String accountSync(String accountId) => '${accounts}/$accountId/sync';
+    static String accountSync(String accountId) => '$accounts/$accountId/sync';
 
     static String accountSyncStatus(String accountId) =>
-            '${accounts}/$accountId/sync/status';
+            '$accounts/$accountId/sync/status';
 }
 
 class CloudApi {
@@ -26,11 +26,13 @@ class CloudApi {
             (await _dio.get(CloudPaths.googleAccounts)).data;
 
     Future<dynamic> unlinkAccount(String accountId) async =>
-            (await _dio.delete('${CloudPaths.accounts}/$accountId')).data;
+        (await _dio.delete('${CloudPaths.accounts}/$accountId')).data;
 
     Future<dynamic> getFilesSummary({String? accountId}) async => (await _dio.get(
         CloudPaths.filesSummary,
-        queryParameters: accountId == null ? null : {'accountId': accountId},
+        queryParameters: {
+            if (accountId case final id?) 'accountId': id,
+        },
     )).data;
 
     Future<dynamic> listFiles({
@@ -44,7 +46,7 @@ class CloudApi {
         CloudPaths.files,
         queryParameters: {
             if (category != null) 'category': category,
-            if (accountId != null) 'accountId': accountId,
+            if (accountId case final id?) 'accountId': id,
             'page': page,
             'limit': limit,
             'sort': sort,
@@ -61,7 +63,7 @@ class CloudApi {
         CloudPaths.fileSearch,
         queryParameters: {
             'q': query,
-            if (accountId != null) 'accountId': accountId,
+            if (accountId case final id?) 'accountId': id,
             'page': page,
             'limit': limit,
         },

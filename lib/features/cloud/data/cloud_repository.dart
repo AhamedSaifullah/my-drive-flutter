@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/app_database.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import 'cloud_api.dart';
@@ -15,13 +16,15 @@ import 'models/sync_models.dart';
 final cloudRepositoryProvider = Provider<CloudRepository>(
     (ref) => CloudRepository(
         CloudApi(ref.read(dioProvider)),
-        ref.read(fileMetadataCacheProvider),
+        FileMetadataCache(ref.read(appDatabaseProvider)),
     ),
 );
 
-final fileMetadataCacheProvider = Provider<FileMetadataCache>(
-    (ref) => const FileMetadataCache(),
-);
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+    final database = AppDatabase();
+    ref.onDispose(database.close);
+    return database;
+});
 
 class CloudRepository {
     const CloudRepository(this.api, this.cache);
