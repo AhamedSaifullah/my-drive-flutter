@@ -26,12 +26,12 @@ class CloudApi {
             (await _dio.get(CloudPaths.googleAccounts)).data;
 
     Future<dynamic> unlinkAccount(String accountId) async =>
-        (await _dio.delete('${CloudPaths.accounts}/$accountId')).data;
+            (await _dio.delete('${CloudPaths.accounts}/$accountId')).data;
 
     Future<dynamic> getFilesSummary({String? accountId}) async => (await _dio.get(
         CloudPaths.filesSummary,
         queryParameters: {
-            if (accountId case final id?) 'accountId': id,
+            ...?accountId == null ? null : {'accountId': accountId},
         },
     )).data;
 
@@ -45,8 +45,8 @@ class CloudApi {
     }) async => (await _dio.get(
         CloudPaths.files,
         queryParameters: {
-            if (category != null) 'category': category,
-            if (accountId case final id?) 'accountId': id,
+            ...?category == null ? null : {'category': category},
+            ...?accountId == null ? null : {'accountId': accountId},
             'page': page,
             'limit': limit,
             'sort': sort,
@@ -63,7 +63,7 @@ class CloudApi {
         CloudPaths.fileSearch,
         queryParameters: {
             'q': query,
-            if (accountId case final id?) 'accountId': id,
+            ...?accountId == null ? null : {'accountId': accountId},
             'page': page,
             'limit': limit,
         },
