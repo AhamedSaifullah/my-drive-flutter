@@ -101,6 +101,25 @@ class CloudRepository {
             throw ApiException.fromDio(error);
         }
     }
+
+    Future<CloudFilePage> searchFiles({
+        required String query,
+        String? accountId,
+        int page = 1,
+        int limit = 50,
+    }) async {
+        try {
+            final response = await api.searchFiles(
+                query: query,
+                accountId: accountId,
+                page: page,
+                limit: limit,
+            );
+            return CloudFilePage.fromJson(response);
+        } on DioException catch (error) {
+            throw ApiException.fromDio(error);
+        }
+    }
 }
 
 final cloudAccountsProvider = FutureProvider<List<CloudAccount>>((ref) async {

@@ -6,6 +6,7 @@ abstract final class CloudPaths {
     static const accounts = '/cloud/accounts';
     static const filesSummary = '/files/summary';
     static const files = '/files';
+    static const fileSearch = '/files/search';
 }
 
 class CloudApi {
@@ -43,6 +44,21 @@ class CloudApi {
             'limit': limit,
             'sort': sort,
             'order': order,
+        },
+    )).data;
+
+    Future<dynamic> searchFiles({
+        required String query,
+        String? accountId,
+        int page = 1,
+        int limit = 50,
+    }) async => (await _dio.get(
+        CloudPaths.fileSearch,
+        queryParameters: {
+            'q': query,
+            if (accountId != null) 'accountId': accountId,
+            'page': page,
+            'limit': limit,
         },
     )).data;
 }
