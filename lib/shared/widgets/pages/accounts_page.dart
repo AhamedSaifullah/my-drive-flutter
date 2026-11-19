@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../features/cloud/data/cloud_repository.dart';
 import '../../../features/cloud/data/models/cloud_models.dart';
+import '../../../features/cloud/data/models/sync_models.dart';
 import '../../../features/cloud/presentation/cloud_controller.dart';
 import '../app_page.dart';
 import '../info_banner.dart';
@@ -42,9 +43,32 @@ class AccountsPage extends ConsumerWidget {
                     onLinkGoogle: () =>
                             ref.read(cloudControllerProvider.notifier).linkGoogle(),
                     onUnlink: (account) => _confirmUnlink(context, ref, account),
+                    onSync: (account) =>
+                            ref.read(cloudControllerProvider.notifier).requestSync(account),
                 ),
             ),
+            onRefresh: accountsState.maybeWhen(
+                data: (accounts) =>
+                        () => _refreshAccounts(ref, accounts),
+                orElse: () => null,
+            ),
         );
+    }
+
+    Future<void> _refreshAccounts(
+        WidgetRef ref,
+        List<CloudAccount> accounts,
+    ) async {
+        for (final account in accounts.where((item) => item.isActive)) {
+            try {
+                await ref.read(cloudRepositoryProvider).requestAccountSync(account.id);
+            } catch (_) {
+                // The account card displays the individual sync error state.
+            }
+        }
+        ref.invalidate(cloudAccountsProvider);
+        ref.invalidate(fileSummaryProvider);
+        ref.invalidate(syncStatusProvider);
     }
 
     Future<void> _confirmUnlink(
@@ -83,12 +107,14 @@ class _AccountsList extends StatelessWidget {
         required this.isBusy,
         required this.onLinkGoogle,
         required this.onUnlink,
+        required this.onSync,
     });
 
     final List<CloudAccount> accounts;
     final bool isBusy;
     final VoidCallback onLinkGoogle;
     final ValueChanged<CloudAccount> onUnlink;
+    final ValueChanged<CloudAccount> onSync;
 
     @override
     Widget build(BuildContext context) {
@@ -124,6 +150,7 @@ class _AccountsList extends StatelessWidget {
                                 isBusy: isBusy,
                                 onUnlink: () => onUnlink(account),
                                 onReconnect: onLinkGoogle,
+                                onSync: () => onSync(account),
                             ),
                         ),
                     ),
@@ -137,24 +164,27 @@ class _AccountsList extends StatelessWidget {
     }
 }
 
-class _CloudAccountCard extends StatelessWidget {
+class _CloudAccountCard extends ConsumerWidget {
     const _CloudAccountCard({
         required this.account,
         required this.isBusy,
         required this.onUnlink,
         required this.onReconnect,
+        required this.onSync,
     });
 
     final CloudAccount account;
     final bool isBusy;
     final VoidCallback onUnlink;
     final VoidCallback onReconnect;
+    final VoidCallback onSync;
 
     @override
-    Widget build(BuildContext context) {
+    Widget build(BuildContext context, WidgetRef ref) {
         final statusColor = account.isActive
                 ? const Color(0xFF38B27A)
                 : Colors.orange;
+        final syncState = ref.watch(syncStatusProvider(account.id));
         return Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
@@ -201,9 +231,16 @@ class _CloudAccountCard extends StatelessWidget {
                                     side: BorderSide.none,
                                     visualDensity: VisualDensity.compact,
                                 ),
+                                _SyncSummary(status: syncState),
                             ],
                         ),
                     ),
+                    if (account.isActive)
+                        IconButton(
+                            onPressed: isBusy ? null : onSync,
+                            tooltip: 'Sync now',
+                            icon: const Icon(Icons.sync),
+                        ),
                     if (account.status == 'needs_reauth')
                         TextButton(
                             onPressed: isBusy ? null : onReconnect,
@@ -226,6 +263,65 @@ class _CloudAccountCard extends StatelessWidget {
         'revoked' => 'Revoked',
         _ => status,
     };
+}
+
+class _SyncSummary extends StatelessWidget {
+    const _SyncSummary({required this.status});
+
+    final AsyncValue<SyncStatus> status;
+
+    @override
+    Widget build(BuildContext context) => status.when(
+        loading: () => const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: LinearProgressIndicator(minHeight: 3),
+        ),
+        error: (error, stackTrace) => const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text(
+                'Sync status unavailable',
+                style: TextStyle(fontSize: 11, color: Colors.orange),
+            ),
+        ),
+        data: (value) {
+            final label = value.isRunning
+                    ? '${_syncLabel(value.status)} · ${value.processedCount} processed'
+                    : value.completedAt == null
+                    ? 'Not synced yet'
+                    : 'Last synced ${_formatSyncTime(value.completedAt!)}';
+            return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                    children: [
+                        if (value.isRunning)
+                            const Padding(
+                                padding: EdgeInsets.only(right: 5),
+                                child: SizedBox(
+                                    width: 11,
+                                    height: 11,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                            ),
+                        Flexible(child: Text(label, style: const TextStyle(fontSize: 11))),
+                    ],
+                ),
+            );
+        },
+    );
+}
+
+String _syncLabel(String status) => switch (status) {
+    'queued' => 'Sync queued',
+    'running' => 'Syncing',
+    'completed' => 'Synced',
+    'failed' => 'Sync failed',
+    _ => status,
+};
+
+String _formatSyncTime(DateTime value) {
+    final local = value.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')} '
+            '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
 
 class _EmptyAccounts extends StatelessWidget {

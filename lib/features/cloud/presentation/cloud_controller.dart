@@ -41,4 +41,13 @@ class CloudController extends AsyncNotifier<void> {
             ref.invalidate(fileSummaryProvider);
         });
     }
+
+    Future<void> requestSync(CloudAccount account) async {
+        state = const AsyncLoading();
+        state = await AsyncValue.guard(() async {
+            await ref.read(cloudRepositoryProvider).requestAccountSync(account.id);
+            ref.invalidate(syncStatusProvider(account.id));
+            ref.invalidate(fileSummaryProvider);
+        });
+    }
 }

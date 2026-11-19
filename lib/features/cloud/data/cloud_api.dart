@@ -7,6 +7,11 @@ abstract final class CloudPaths {
     static const filesSummary = '/files/summary';
     static const files = '/files';
     static const fileSearch = '/files/search';
+
+    static String accountSync(String accountId) => '${accounts}/$accountId/sync';
+
+    static String accountSyncStatus(String accountId) =>
+            '${accounts}/$accountId/sync/status';
 }
 
 class CloudApi {
@@ -61,4 +66,10 @@ class CloudApi {
             'limit': limit,
         },
     )).data;
+
+    Future<dynamic> requestAccountSync(String accountId) async =>
+            (await _dio.post(CloudPaths.accountSync(accountId))).data;
+
+    Future<dynamic> getAccountSyncStatus(String accountId) async =>
+            (await _dio.get(CloudPaths.accountSyncStatus(accountId))).data;
 }

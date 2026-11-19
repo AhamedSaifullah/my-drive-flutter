@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,7 @@ import 'cloud_api.dart';
 import 'models/cloud_models.dart';
 import 'models/file_models.dart';
 import 'models/file_summary.dart';
+import 'models/sync_models.dart';
 
 final cloudRepositoryProvider = Provider<CloudRepository>(
     (ref) => CloudRepository(CloudApi(ref.read(dioProvider))),
@@ -120,6 +123,22 @@ class CloudRepository {
             throw ApiException.fromDio(error);
         }
     }
+
+    Future<void> requestAccountSync(String accountId) async {
+        try {
+            await api.requestAccountSync(accountId);
+        } on DioException catch (error) {
+            throw ApiException.fromDio(error);
+        }
+    }
+
+    Future<SyncStatus> getAccountSyncStatus(String accountId) async {
+        try {
+            return SyncStatus.fromJson(await api.getAccountSyncStatus(accountId));
+        } on DioException catch (error) {
+            throw ApiException.fromDio(error);
+        }
+    }
 }
 
 final cloudAccountsProvider = FutureProvider<List<CloudAccount>>((ref) async {
@@ -129,3 +148,17 @@ final cloudAccountsProvider = FutureProvider<List<CloudAccount>>((ref) async {
 final fileSummaryProvider = FutureProvider<FileSummary>((ref) async {
     return ref.read(cloudRepositoryProvider).getFilesSummary();
 });
+
+final syncStatusProvider = FutureProvider.autoDispose
+        .family<SyncStatus, String>((ref, accountId) async {
+            final status = await ref
+                    .read(cloudRepositoryProvider)
+                    .getAccountSyncStatus(accountId);
+            if (status.isRunning) {
+                final timer = Timer(const Duration(seconds: 2), ref.invalidateSelf);
+                ref.onDispose(timer.cancel);
+            } else if (status.status == 'completed') {
+                ref.invalidate(fileSummaryProvider);
+            }
+            return status;
+        });
