@@ -5,6 +5,7 @@ import '../../../core/logging/app_logger.dart';
 import '../../../features/cloud/data/cloud_repository.dart';
 import '../../../features/cloud/data/models/file_summary.dart';
 import '../../../features/cloud/presentation/cloud_controller.dart';
+import '../../../features/cloud/presentation/files_page.dart';
 import '../app_page.dart';
 import '../quick_tile.dart';
 
@@ -146,6 +147,7 @@ class _FileCategoryTiles extends StatelessWidget {
                 Row(
                     children: [
                         _tile(
+                            context,
                             summary,
                             'image',
                             'Images',
@@ -155,6 +157,7 @@ class _FileCategoryTiles extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         _tile(
+                            context,
                             summary,
                             'video',
                             'Videos',
@@ -168,6 +171,7 @@ class _FileCategoryTiles extends StatelessWidget {
                 Row(
                     children: [
                         _tile(
+                            context,
                             summary,
                             'audio',
                             'Audio',
@@ -177,6 +181,7 @@ class _FileCategoryTiles extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         _tile(
+                            context,
                             summary,
                             'document',
                             'Documents',
@@ -190,6 +195,7 @@ class _FileCategoryTiles extends StatelessWidget {
                 Row(
                     children: [
                         _tile(
+                            context,
                             summary,
                             'other',
                             'Other',
@@ -212,6 +218,7 @@ class _FileCategoryTiles extends StatelessWidget {
     }
 
     Widget _tile(
+        BuildContext context,
         FileSummary summary,
         String category,
         String title,
@@ -225,6 +232,11 @@ class _FileCategoryTiles extends StatelessWidget {
             title: title,
             count: loading ? 'Loading...' : '$count files',
             color: color,
+            onTap: loading
+                    ? null
+                    : () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => FilesPage(category: category)),
+                        ),
         );
     }
 }

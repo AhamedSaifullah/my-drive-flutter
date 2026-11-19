@@ -5,6 +5,7 @@ abstract final class CloudPaths {
     static const googleAccounts = '/cloud/google/accounts';
     static const accounts = '/cloud/accounts';
     static const filesSummary = '/files/summary';
+    static const files = '/files';
 }
 
 class CloudApi {
@@ -24,5 +25,24 @@ class CloudApi {
     Future<dynamic> getFilesSummary({String? accountId}) async => (await _dio.get(
         CloudPaths.filesSummary,
         queryParameters: accountId == null ? null : {'accountId': accountId},
+    )).data;
+
+    Future<dynamic> listFiles({
+        String? category,
+        String? accountId,
+        int page = 1,
+        int limit = 20,
+        String sort = 'modifiedAt',
+        String order = 'desc',
+    }) async => (await _dio.get(
+        CloudPaths.files,
+        queryParameters: {
+            if (category != null) 'category': category,
+            if (accountId != null) 'accountId': accountId,
+            'page': page,
+            'limit': limit,
+            'sort': sort,
+            'order': order,
+        },
     )).data;
 }
