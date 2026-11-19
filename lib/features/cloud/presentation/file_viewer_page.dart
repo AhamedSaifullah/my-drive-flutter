@@ -36,17 +36,23 @@ class _ImageViewer extends ConsumerWidget {
         final token = ref.watch(_accessTokenProvider);
         return token.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stackTrace) => const _ViewerError(),
+            error: (error, stackTrace) =>
+                    _ViewerError(onRetry: () => ref.invalidate(_accessTokenProvider)),
             data: (value) => value == null
-                    ? const _ViewerError()
+                    ? _ViewerError(onRetry: () => ref.invalidate(_accessTokenProvider))
                     : Center(
                             child: InteractiveViewer(
                                 child: Image.network(
                                     _contentUrl(file),
                                     headers: {'Authorization': 'Bearer $value'},
                                     fit: BoxFit.contain,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                            const _ViewerError(),
+                                    errorBuilder: (context, error, stackTrace) => _ViewerError(
+                                        onRetry: () => Navigator.of(context).pushReplacement(
+                                            MaterialPageRoute(
+                                                builder: (_) => FileViewerPage(file: file),
+                                            ),
+                                        ),
+                                    ),
                                 ),
                             ),
                         ),
@@ -106,7 +112,7 @@ class _MediaViewerState extends ConsumerState<_MediaViewer> {
     @override
     Widget build(BuildContext context) {
         final controller = _controller;
-        if (_error != null) return const _ViewerError();
+        if (_error != null) return _ViewerError(onRetry: _retry);
         if (controller == null || !controller.value.isInitialized) {
             return const Center(child: CircularProgressIndicator());
         }
@@ -146,6 +152,15 @@ class _MediaViewerState extends ConsumerState<_MediaViewer> {
                 ],
             ),
         );
+    }
+
+    void _retry() {
+        _controller?.dispose();
+        setState(() {
+            _controller = null;
+            _error = null;
+        });
+        _initialize();
     }
 }
 
@@ -223,11 +238,21 @@ class _DocumentViewerState extends ConsumerState<_DocumentViewer> {
 }
 
 class _ViewerError extends StatelessWidget {
-    const _ViewerError();
+    const _ViewerError({this.onRetry});
+
+    final VoidCallback? onRetry;
 
     @override
-    Widget build(BuildContext context) =>
-            const Center(child: Text('This file could not be opened.'));
+    Widget build(BuildContext context) => Center(
+        child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+                const Text('This file could not be opened.'),
+                if (onRetry != null)
+                    TextButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
+        ),
+    );
 }
 
 final _accessTokenProvider = FutureProvider<String?>((ref) {

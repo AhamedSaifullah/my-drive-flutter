@@ -50,11 +50,17 @@ class HomePage extends ConsumerWidget {
                                 ref.read(cloudControllerProvider.notifier).linkGoogle(),
                     ),
                     const SizedBox(height: 28),
-                    _StorageSummary(summaryState: summaryState),
+                    _StorageSummary(
+                        summaryState: summaryState,
+                        onRetry: () => ref.invalidate(fileSummaryProvider),
+                    ),
                     const SizedBox(height: 28),
                     Text('Quick access', style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 14),
-                    _FileCategoryTiles(summaryState: summaryState),
+                    _FileCategoryTiles(
+                        summaryState: summaryState,
+                        onRetry: () => ref.invalidate(fileSummaryProvider),
+                    ),
                 ],
             ),
         );
@@ -69,9 +75,10 @@ class HomePage extends ConsumerWidget {
 }
 
 class _StorageSummary extends StatelessWidget {
-    const _StorageSummary({required this.summaryState});
+    const _StorageSummary({required this.summaryState, required this.onRetry});
 
     final AsyncValue<FileSummary> summaryState;
+    final VoidCallback onRetry;
 
     @override
     Widget build(BuildContext context) {
@@ -126,6 +133,8 @@ class _StorageSummary extends StatelessWidget {
                         detail,
                         style: const TextStyle(color: Color(0xFFB4BAD0), fontSize: 12),
                     ),
+                    if (summaryState.hasError)
+                        TextButton(onPressed: onRetry, child: const Text('Retry')),
                 ],
             ),
         );
@@ -133,9 +142,10 @@ class _StorageSummary extends StatelessWidget {
 }
 
 class _FileCategoryTiles extends StatelessWidget {
-    const _FileCategoryTiles({required this.summaryState});
+    const _FileCategoryTiles({required this.summaryState, required this.onRetry});
 
     final AsyncValue<FileSummary> summaryState;
+    final VoidCallback onRetry;
 
     @override
     Widget build(BuildContext context) {
@@ -212,6 +222,7 @@ class _FileCategoryTiles extends StatelessWidget {
                         'Category totals are temporarily unavailable.',
                         style: TextStyle(color: Theme.of(context).colorScheme.error),
                     ),
+                    TextButton(onPressed: onRetry, child: const Text('Retry')),
                 ],
             ],
         );

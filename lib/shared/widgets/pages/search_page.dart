@@ -115,9 +115,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 if (_loading)
                     const Center(child: CircularProgressIndicator())
                 else if (_error != null)
-                    const _SearchMessage(
+                    _SearchMessage(
                         icon: Icons.cloud_off_outlined,
                         message: 'Search is temporarily unavailable.',
+                        onRetry: _retrySearch,
                     )
                 else if (_searchController.text.trim().isEmpty)
                     const _SearchMessage(
@@ -135,6 +136,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             ],
         ),
     );
+
+    void _retrySearch() => _search();
 }
 
 class _AccountFilter extends ConsumerWidget {
@@ -148,7 +151,15 @@ class _AccountFilter extends ConsumerWidget {
         final accounts = ref.watch(cloudAccountsProvider);
         return accounts.when(
             loading: () => const LinearProgressIndicator(),
-            error: (error, stackTrace) => const Text('Account filter unavailable'),
+            error: (error, stackTrace) => Row(
+                children: [
+                    const Expanded(child: Text('Account filter unavailable')),
+                    TextButton(
+                        onPressed: () => ref.invalidate(cloudAccountsProvider),
+                        child: const Text('Retry'),
+                    ),
+                ],
+            ),
             data: (items) => DropdownButtonFormField<String?>(
                 value: accountId,
                 decoration: const InputDecoration(
@@ -208,11 +219,13 @@ class _SearchMessage extends StatelessWidget {
         required this.icon,
         required this.message,
         this.detail,
+        this.onRetry,
     });
 
     final IconData icon;
     final String message;
     final String? detail;
+    final VoidCallback? onRetry;
 
     @override
     Widget build(BuildContext context) => Center(
@@ -225,6 +238,8 @@ class _SearchMessage extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(detail!, style: const TextStyle(fontSize: 13)),
                 ],
+                if (onRetry != null)
+                    TextButton(onPressed: onRetry, child: const Text('Retry')),
             ],
         ),
     );
