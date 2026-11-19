@@ -5,6 +5,7 @@ import '../../../core/config/env.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/cloud_repository.dart';
 import '../data/models/file_models.dart';
+import 'file_viewer_page.dart';
 
 class FilesPage extends ConsumerStatefulWidget {
     const FilesPage({super.key, required this.category});
@@ -149,52 +150,69 @@ class _FilesPageState extends ConsumerState<FilesPage> {
             mainAxisSpacing: 12,
             childAspectRatio: .82,
         ),
-        itemBuilder: (context, index) => _FileGridCard(file: _files[index]),
+        itemBuilder: (context, index) => _FileGridCard(
+            file: _files[index],
+            onTap: () => _openFile(_files[index]),
+        ),
     );
 
     Widget _buildList() => SliverList.builder(
         itemCount: _files.length,
         itemBuilder: (context, index) => Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _FileListTile(file: _files[index]),
+            child: _FileListTile(
+                file: _files[index],
+                onTap: () => _openFile(_files[index]),
+            ),
         ),
     );
+
+    void _openFile(CloudFile file) {
+        Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => FileViewerPage(file: file)));
+    }
 }
 
 class _FileGridCard extends StatelessWidget {
-    const _FileGridCard({required this.file});
+    const _FileGridCard({required this.file, required this.onTap});
 
     final CloudFile file;
+    final VoidCallback onTap;
 
     @override
     Widget build(BuildContext context) => Card(
         clipBehavior: Clip.antiAlias,
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-                Expanded(child: _FilePreview(file: file)),
-                Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                    child: Text(
-                        file.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+        child: InkWell(
+            onTap: onTap,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    Expanded(child: _FilePreview(file: file)),
+                    Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                        child: Text(
+                            file.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                     ),
-                ),
-            ],
+                ],
+            ),
         ),
     );
 }
 
 class _FileListTile extends StatelessWidget {
-    const _FileListTile({required this.file});
+    const _FileListTile({required this.file, required this.onTap});
 
     final CloudFile file;
+    final VoidCallback onTap;
 
     @override
     Widget build(BuildContext context) => Card(
         child: ListTile(
+            onTap: onTap,
             leading: _FileIcon(category: file.category),
             title: Text(file.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(
