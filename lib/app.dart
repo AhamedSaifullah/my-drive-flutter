@@ -56,6 +56,7 @@ class _MyDriveAppState extends ConsumerState<MyDriveApp> {
 
         AppLogger.log('Cloud provider linked: $provider', tag: 'DeepLink');
         ref.invalidate(cloudAccountsProvider);
+        ref.invalidate(fileSummaryProvider);
         appRouter.go('/home');
     }
 

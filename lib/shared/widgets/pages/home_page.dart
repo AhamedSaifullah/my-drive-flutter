@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/logging/app_logger.dart';
+import '../../../features/cloud/data/cloud_repository.dart';
+import '../../../features/cloud/data/models/file_summary.dart';
 import '../../../features/cloud/presentation/cloud_controller.dart';
 import '../app_page.dart';
 import '../quick_tile.dart';
@@ -32,6 +34,7 @@ class HomePage extends ConsumerWidget {
         });
 
         final linkState = ref.watch(cloudControllerProvider);
+        final summaryState = ref.watch(fileSummaryProvider);
         final greeting = _greetingForHour(DateTime.now().hour);
 
         return AppPage(
@@ -46,89 +49,11 @@ class HomePage extends ConsumerWidget {
                                 ref.read(cloudControllerProvider.notifier).linkGoogle(),
                     ),
                     const SizedBox(height: 28),
-                    Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                            color: const Color(0xFF1E2540),
-                            borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                                const Text(
-                                    'TOTAL STORAGE',
-                                    style: TextStyle(
-                                        color: Color(0xFFB4BAD0),
-                                        fontSize: 11,
-                                        letterSpacing: 1.2,
-                                        fontWeight: FontWeight.w700,
-                                    ),
-                                ),
-                                const SizedBox(height: 11),
-                                const Text(
-                                    '18.4 GB  /  35 GB',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 20,
-                                    ),
-                                ),
-                                const SizedBox(height: 15),
-                                ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: const LinearProgressIndicator(
-                                        value: .52,
-                                        minHeight: 8,
-                                        backgroundColor: Color(0xFF454B63),
-                                        color: Color(0xFF8D7BF1),
-                                    ),
-                                ),
-                                const SizedBox(height: 9),
-                                const Text(
-                                    '52% used across 1 connected account',
-                                    style: TextStyle(color: Color(0xFFB4BAD0), fontSize: 12),
-                                ),
-                            ],
-                        ),
-                    ),
+                    _StorageSummary(summaryState: summaryState),
                     const SizedBox(height: 28),
                     Text('Quick access', style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 14),
-                    const Row(
-                        children: [
-                            QuickTile(
-                                icon: Icons.image_outlined,
-                                title: 'Photos',
-                                count: '248 files',
-                                color: Color(0xFFFFE9D9),
-                            ),
-                            SizedBox(width: 12),
-                            QuickTile(
-                                icon: Icons.description_outlined,
-                                title: 'Documents',
-                                count: '96 files',
-                                color: Color(0xFFE5E5FF),
-                            ),
-                        ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Row(
-                        children: [
-                            QuickTile(
-                                icon: Icons.video_library_outlined,
-                                title: 'Videos',
-                                count: '32 files',
-                                color: Color(0xFFDFF6EF),
-                            ),
-                            SizedBox(width: 12),
-                            QuickTile(
-                                icon: Icons.star_border,
-                                title: 'Starred',
-                                count: '18 files',
-                                color: Color(0xFFFFF3CF),
-                            ),
-                        ],
-                    ),
+                    _FileCategoryTiles(summaryState: summaryState),
                 ],
             ),
         );
@@ -140,6 +65,181 @@ class HomePage extends ConsumerWidget {
         if (hour >= 17 && hour < 21) return 'Good evening';
         return 'Good night';
     }
+}
+
+class _StorageSummary extends StatelessWidget {
+    const _StorageSummary({required this.summaryState});
+
+    final AsyncValue<FileSummary> summaryState;
+
+    @override
+    Widget build(BuildContext context) {
+        final summary = summaryState.value ?? const FileSummary.empty();
+        final detail = summaryState.hasError
+                ? 'Unable to load the latest file summary.'
+                : '${summary.totalFiles} files across your connected accounts';
+
+        return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+                color: const Color(0xFF1E2540),
+                borderRadius: BorderRadius.circular(22),
+            ),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                    const Text(
+                        'TOTAL STORAGE',
+                        style: TextStyle(
+                            color: Color(0xFFB4BAD0),
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                        ),
+                    ),
+                    const SizedBox(height: 11),
+                    Text(
+                        summaryState.isLoading
+                                ? 'Loading summary...'
+                                : _formatBytes(summary.totalSize),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 20,
+                        ),
+                    ),
+                    const SizedBox(height: 15),
+                    ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: LinearProgressIndicator(
+                            value: summaryState.isLoading ? null : 1,
+                            minHeight: 8,
+                            backgroundColor: const Color(0xFF454B63),
+                            color: summaryState.hasError
+                                    ? const Color(0xFFE57373)
+                                    : const Color(0xFF8D7BF1),
+                        ),
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                        detail,
+                        style: const TextStyle(color: Color(0xFFB4BAD0), fontSize: 12),
+                    ),
+                ],
+            ),
+        );
+    }
+}
+
+class _FileCategoryTiles extends StatelessWidget {
+    const _FileCategoryTiles({required this.summaryState});
+
+    final AsyncValue<FileSummary> summaryState;
+
+    @override
+    Widget build(BuildContext context) {
+        final summary = summaryState.value ?? const FileSummary.empty();
+        final loading = summaryState.isLoading;
+
+        return Column(
+            children: [
+                Row(
+                    children: [
+                        _tile(
+                            summary,
+                            'image',
+                            'Images',
+                            Icons.image_outlined,
+                            const Color(0xFFFFE9D9),
+                            loading,
+                        ),
+                        const SizedBox(width: 12),
+                        _tile(
+                            summary,
+                            'video',
+                            'Videos',
+                            Icons.video_library_outlined,
+                            const Color(0xFFDFF6EF),
+                            loading,
+                        ),
+                    ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                    children: [
+                        _tile(
+                            summary,
+                            'audio',
+                            'Audio',
+                            Icons.audiotrack_outlined,
+                            const Color(0xFFFFF3CF),
+                            loading,
+                        ),
+                        const SizedBox(width: 12),
+                        _tile(
+                            summary,
+                            'document',
+                            'Documents',
+                            Icons.description_outlined,
+                            const Color(0xFFE5E5FF),
+                            loading,
+                        ),
+                    ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                    children: [
+                        _tile(
+                            summary,
+                            'other',
+                            'Other',
+                            Icons.insert_drive_file_outlined,
+                            const Color(0xFFE6EEF8),
+                            loading,
+                        ),
+                        const Expanded(child: SizedBox()),
+                    ],
+                ),
+                if (summaryState.hasError) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                        'Category totals are temporarily unavailable.',
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                ],
+            ],
+        );
+    }
+
+    Widget _tile(
+        FileSummary summary,
+        String category,
+        String title,
+        IconData icon,
+        Color color,
+        bool loading,
+    ) {
+        final count = summary.category(category).count;
+        return QuickTile(
+            icon: icon,
+            title: title,
+            count: loading ? 'Loading...' : '$count files',
+            color: color,
+        );
+    }
+}
+
+String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    var value = bytes.toDouble();
+    var unitIndex = -1;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex++;
+    }
+    final decimals = value >= 10 ? 0 : 1;
+    return '${value.toStringAsFixed(decimals)} ${units[unitIndex]}';
 }
 
 class _GoogleDriveLinkCard extends StatelessWidget {

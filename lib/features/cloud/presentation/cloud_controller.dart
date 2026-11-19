@@ -29,6 +29,7 @@ class CloudController extends AsyncNotifier<void> {
                 throw ApiException('Google Drive linking failed: $error');
             }
             ref.invalidate(cloudAccountsProvider);
+            ref.invalidate(fileSummaryProvider);
         });
     }
 
@@ -37,6 +38,7 @@ class CloudController extends AsyncNotifier<void> {
         state = await AsyncValue.guard(() async {
             await ref.read(cloudRepositoryProvider).unlinkAccount(account.id);
             ref.invalidate(cloudAccountsProvider);
+            ref.invalidate(fileSummaryProvider);
         });
     }
 }
